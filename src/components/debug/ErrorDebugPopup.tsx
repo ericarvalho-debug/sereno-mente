@@ -208,7 +208,7 @@ export function ErrorDebugPopup() {
 
           {images.length > 0 && (
             <>
-              <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[10px] leading-snug text-amber-700 dark:text-amber-300">
+              <p className="rounded border border-destructive/40 bg-destructive/10 p-2 text-[10px] leading-snug text-foreground">
                 ⚠️ Para o agente realmente <strong>ver</strong> as imagens, reanexe-as pelo chat
                 (botão + → Anexar). Use os botões abaixo para abrir ou baixar rapidamente.
               </p>
