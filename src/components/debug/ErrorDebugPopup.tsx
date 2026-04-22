@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, KeyboardEvent, MouseEvent as ReactMouseEve
 import { Bug, Minus, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/useAuth";
-
 const PREFIX = "INSTRUÇÃO DE DESENVOLVIMENTO (IGNORE O ERRO, EXECUTE A TAREFA):";
 
 /**
