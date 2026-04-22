@@ -112,9 +112,12 @@ export function ErrorDebugPopup() {
 
     let message = `${PREFIX}\n\n${text}`;
     if (images.length > 0) {
+      // Expõe as imagens em uma global para inspeção, sem poluir o stack
+      // trace com strings base64 gigantes que quebram o overlay de erro.
+      (window as unknown as { __lovableDebugImages?: AttachedImage[] }).__lovableDebugImages = images;
       message += `\n\n--- IMAGENS ANEXADAS (${images.length}) ---\n`;
       images.forEach((img, i) => {
-        message += `\n[Imagem ${i + 1}] ${img.name} (${Math.round(img.size / 1024)} KB)\n${img.dataUrl}\n`;
+        message += `\n[Imagem ${i + 1}] ${img.name} (${Math.round(img.size / 1024)} KB) — disponível em window.__lovableDebugImages[${i}].dataUrl`;
       });
     }
 
