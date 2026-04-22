@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, KeyboardEvent, MouseEvent as ReactMouseEvent, ChangeEvent } from "react";
-import { Bug, Minus, Square, X, ImagePlus, Trash2 } from "lucide-react";
+import { Bug, Minus, Square, X, ImagePlus, Trash2, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 const PREFIX = "INSTRUÇÃO DE DESENVOLVIMENTO (IGNORE O ERRO, EXECUTE A TAREFA):";
@@ -112,18 +112,35 @@ export function ErrorDebugPopup() {
 
     let message = `${PREFIX}\n\n${text}`;
     if (images.length > 0) {
-      // Expõe as imagens em uma global para inspeção, sem poluir o stack
-      // trace com strings base64 gigantes que quebram o overlay de erro.
       (window as unknown as { __lovableDebugImages?: AttachedImage[] }).__lovableDebugImages = images;
-      message += `\n\n--- IMAGENS ANEXADAS (${images.length}) ---\n`;
+      message += `\n\n--- IMAGENS ANEXADAS (${images.length}) ---`;
+      message += `\nATENÇÃO AGENTE: as imagens NÃO estão acessíveis para você (vivem apenas em window.__lovableDebugImages no navegador do usuário). Se a tarefa exigir leitura/edição visual real das imagens, peça ao usuário para reanexá-las pelo chat (botão + Anexar). Caso contrário, prossiga apenas com a instrução textual.\n`;
       images.forEach((img, i) => {
-        message += `\n[Imagem ${i + 1}] ${img.name} (${Math.round(img.size / 1024)} KB) — disponível em window.__lovableDebugImages[${i}].dataUrl`;
+        message += `\n[Imagem ${i + 1}] ${img.name} (${Math.round(img.size / 1024)} KB)`;
       });
     }
 
     window.dispatchEvent(
       new CustomEvent("lovable-debug-error", { detail: message }),
     );
+  };
+
+  const openImage = (img: AttachedImage) => {
+    const w = window.open();
+    if (w) {
+      w.document.write(
+        `<title>${img.name}</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;"><img src="${img.dataUrl}" style="max-width:100%;max-height:100vh;"/></body>`,
+      );
+    }
+  };
+
+  const downloadImage = (img: AttachedImage) => {
+    const a = document.createElement("a");
+    a.href = img.dataUrl;
+    a.download = img.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -190,28 +207,52 @@ export function ErrorDebugPopup() {
           />
 
           {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((img) => (
-                <div
-                  key={img.id}
-                  className="group relative overflow-hidden rounded border border-border"
-                >
-                  <img
-                    src={img.dataUrl}
-                    alt={img.name}
-                    className="h-16 w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(img.id)}
-                    className="absolute right-1 top-1 rounded bg-background/80 p-1 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                    aria-label="Remover imagem"
+            <>
+              <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[10px] leading-snug text-amber-700 dark:text-amber-300">
+                ⚠️ Para o agente realmente <strong>ver</strong> as imagens, reanexe-as pelo chat
+                (botão + → Anexar). Use os botões abaixo para abrir ou baixar rapidamente.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((img) => (
+                  <div
+                    key={img.id}
+                    className="group relative overflow-hidden rounded border border-border"
                   >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <img
+                      src={img.dataUrl}
+                      alt={img.name}
+                      className="h-16 w-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 bg-background/70 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => openImage(img)}
+                        className="rounded bg-background p-1 text-foreground hover:bg-accent"
+                        title="Abrir em nova aba"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadImage(img)}
+                        className="rounded bg-background p-1 text-foreground hover:bg-accent"
+                        title="Baixar"
+                      >
+                        <Download className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(img.id)}
+                        className="rounded bg-background p-1 text-destructive hover:bg-accent"
+                        title="Remover"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           <input
