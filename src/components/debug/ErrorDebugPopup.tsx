@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, KeyboardEvent, MouseEvent as ReactMouseEve
 import { Bug, Minus, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/hooks/useAuth";
-
 const PREFIX = "INSTRUÇÃO DE DESENVOLVIMENTO (IGNORE O ERRO, EXECUTE A TAREFA):";
 
 /**
@@ -15,18 +13,16 @@ const PREFIX = "INSTRUÇÃO DE DESENVOLVIMENTO (IGNORE O ERRO, EXECUTE A TAREFA)
  * nem qualquer outro canal conversacional.
  */
 export function ErrorDebugPopup() {
-  const { user, role } = useAuth();
-  // Define quem é admin. Ajuste conforme sua lógica real de admin.
-  // Por padrão considera admin se role === 'admin' OU se houver um email
-  // listado em VITE_ADMIN_EMAILS (separados por vírgula).
-  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS as string | undefined)
-    ?.split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean) ?? [];
+  // Disponível em desenvolvimento (preview da Lovable e localhost).
+  // Para liberar em produção também, basta remover essa checagem.
+  const isDev =
+    import.meta.env.DEV ||
+    (typeof window !== "undefined" &&
+      (window.location.hostname.includes("lovable.app") ||
+        window.location.hostname.includes("lovableproject.com") ||
+        window.location.hostname === "localhost"));
 
-  const isAdmin =
-    (role as unknown as string) === "admin" ||
-    (!!user?.email && adminEmails.includes(user.email.toLowerCase()));
+  const isAdmin = isDev;
 
   const [open, setOpen] = useState(true);
   const [minimized, setMinimized] = useState(false);
