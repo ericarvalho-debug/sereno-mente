@@ -10,6 +10,7 @@ import TherapistList from "./pages/TherapistList";
 import PatientDashboard from "./pages/PatientDashboard";
 import TherapistDashboard from "./pages/TherapistDashboard";
 import Messages from "./pages/Messages";
+import ImageGen from "./pages/ImageGen";
 import NotFound from "./pages/NotFound";
 import { DebugErrorThrower } from "@/components/debug/DebugErrorThrower";
 import { ErrorDebugPopup } from "@/components/debug/ErrorDebugPopup";
