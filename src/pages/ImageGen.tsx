@@ -223,14 +223,18 @@ export default function ImageGen() {
           </header>
 
           <Tabs defaultValue="generate" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="generate">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Gerar (grátis)
               </TabsTrigger>
               <TabsTrigger value="edit">
                 <Wand2 className="mr-2 h-4 w-4" />
-                Editar imagem (img2img)
+                Editar (grátis)
+              </TabsTrigger>
+              <TabsTrigger value="combine">
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Combinar 2 imagens
               </TabsTrigger>
             </TabsList>
 
