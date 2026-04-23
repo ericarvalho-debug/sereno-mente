@@ -17,6 +17,10 @@ const SIZES = [
   { label: "Wide (1536×640)", w: 1536, h: 640 },
 ];
 
+const EXAMPLE_PROMPT = `Professional portrait of a confident middle-aged woman, wearing elegant black clothing and glasses, smiling, arms crossed, centered composition, sharp focus, studio lighting, warm tones. Background: modern office environment, softly blurred bokeh, neutral colors (beige, brown, soft light), clean and professional atmosphere. Style: advertising creative, social media marketing post, high contrast, cinematic lighting, depth of field, ultra realistic, 4k. Mood: trustworthy, professional, authoritative, legal/financial advisory theme. No distortions, no extra limbs, no blur on face.`;
+
+const EXAMPLE_SEED = "42";
+
 export default function ImageGen() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("flux");
