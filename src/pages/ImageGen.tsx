@@ -101,13 +101,13 @@ export default function ImageGen() {
           <header className="mb-8 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-secondary/40 px-4 py-1.5 text-sm text-secondary-foreground">
               <Sparkles className="h-4 w-4" />
-              100% gratuito · sem cadastro · sem chave de API
+              100% gratuito · sem cadastro · sem chave de API · 0 créditos
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
               Gerador de Imagens com IA
             </h1>
             <p className="mt-3 text-muted-foreground">
-              Descreva o que você imagina e a IA cria. Powered by Pollinations.ai (Flux).
+              Descreva o que você imagina e a IA cria. Powered by Pollinations.ai (Flux) — chamada direta à API pública, sem consumir créditos do projeto.
             </p>
           </header>
 
