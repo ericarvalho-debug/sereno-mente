@@ -144,20 +144,21 @@ export default function ImageGen() {
     setEditing(true);
     setEditedUrl(null);
     try {
-      const { data, error } = await supabase.functions.invoke("image-edit", {
+      const { data, error } = await supabase.functions.invoke("image-edit-hf", {
         body: {
           imageDataUrl: sourceDataUrl,
           prompt: editPrompt,
           negativePrompt,
+          strength: 0.6,
         },
       });
       if (error) throw error;
-      if (!data?.imageUrl) throw new Error("Sem imagem na resposta");
+      if (!data?.imageUrl) throw new Error(data?.error || "Sem imagem na resposta");
       setEditedUrl(data.imageUrl);
       toast.success("Imagem editada!");
     } catch (e: any) {
       const msg = e?.message || "Falha na edição";
-      toast.error(msg.includes("402") ? "Créditos insuficientes." : msg);
+      toast.error(msg);
     } finally {
       setEditing(false);
     }
