@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, KeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
-import { Bug, Minus, Square, X } from "lucide-react";
+import { Bug, Minus, Square, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Link } from "react-router-dom";
 const PREFIX = "INSTRUÇÃO DE DESENVOLVIMENTO (IGNORE O ERRO, EXECUTE A TAREFA):";
 
 /**
@@ -137,7 +138,13 @@ export function ErrorDebugPopup() {
             style={{ resize: "both" }}
             className="min-h-[140px] w-full font-mono text-xs"
           />
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/image-gen">
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Gerador de Imagens
+              </Link>
+            </Button>
             <Button size="sm" onClick={trigger} disabled={!instruction.trim()}>
               Gerar Erro
             </Button>
