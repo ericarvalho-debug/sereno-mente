@@ -17,6 +17,10 @@ const SIZES = [
   { label: "Wide (1536×640)", w: 1536, h: 640 },
 ];
 
+const EXAMPLE_PROMPT = `Professional portrait of a confident middle-aged woman, wearing elegant black clothing and glasses, smiling, arms crossed, centered composition, sharp focus, studio lighting, warm tones. Background: modern office environment, softly blurred bokeh, neutral colors (beige, brown, soft light), clean and professional atmosphere. Style: advertising creative, social media marketing post, high contrast, cinematic lighting, depth of field, ultra realistic, 4k. Mood: trustworthy, professional, authoritative, legal/financial advisory theme. No distortions, no extra limbs, no blur on face.`;
+
+const EXAMPLE_SEED = "42";
+
 export default function ImageGen() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("flux");
@@ -97,20 +101,34 @@ export default function ImageGen() {
           <header className="mb-8 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-secondary/40 px-4 py-1.5 text-sm text-secondary-foreground">
               <Sparkles className="h-4 w-4" />
-              100% gratuito · sem cadastro · sem chave de API
+              100% gratuito · sem cadastro · sem chave de API · 0 créditos
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
               Gerador de Imagens com IA
             </h1>
             <p className="mt-3 text-muted-foreground">
-              Descreva o que você imagina e a IA cria. Powered by Pollinations.ai (Flux).
+              Descreva o que você imagina e a IA cria. Powered by Pollinations.ai (Flux) — chamada direta à API pública, sem consumir créditos do projeto.
             </p>
           </header>
 
           <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
             <Card className="p-5 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="prompt">Descrição da imagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="prompt">Descrição da imagem</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrompt(EXAMPLE_PROMPT);
+                      setSeed(EXAMPLE_SEED);
+                      setSizeIdx(0);
+                      setModel("flux-realism");
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Usar exemplo (retrato profissional)
+                  </button>
+                </div>
                 <Textarea
                   id="prompt"
                   value={prompt}
