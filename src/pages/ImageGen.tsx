@@ -113,7 +113,7 @@ export default function ImageGen() {
     }
   };
 
-  // -------- Modo "Editar" (img2img / Nano Banana via Lovable AI) --------
+  // -------- Modo "Editar" (img2img / Stable Diffusion XL via Hugging Face — grátis) --------
   const fileRef = useRef<HTMLInputElement>(null);
   const [sourceDataUrl, setSourceDataUrl] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState("");
@@ -171,7 +171,7 @@ export default function ImageGen() {
           <header className="mb-8 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-secondary/40 px-4 py-1.5 text-sm text-secondary-foreground">
               <Sparkles className="h-4 w-4" />
-              Geração grátis (Pollinations) + Edição img2img (Nano Banana)
+              Geração grátis (Pollinations) + Edição img2img grátis (Stable Diffusion XL)
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
               Gerador & Editor de Imagens
@@ -326,9 +326,9 @@ export default function ImageGen() {
               <div className="mb-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>
-                  Modo <strong>img2img</strong> usa o modelo Nano Banana (Gemini Flash Image)
-                  via Lovable AI. <strong>Consome créditos</strong> do workspace.
-                  Mantém o rosto/pose original e altera o que você pedir.
+                  Modo <strong>img2img</strong> usa <strong>Stable Diffusion XL Refiner</strong> via
+                  Hugging Face Inference API (tier gratuito). <strong>0 créditos</strong> do Lovable AI.
+                  Pode haver espera de ~30s no primeiro uso (cold start) e rate limit do HF se usado em excesso.
                 </p>
               </div>
 
