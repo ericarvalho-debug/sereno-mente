@@ -10,6 +10,7 @@ import TherapistList from "./pages/TherapistList";
 import PatientDashboard from "./pages/PatientDashboard";
 import TherapistDashboard from "./pages/TherapistDashboard";
 import Messages from "./pages/Messages";
+import ImageGen from "./pages/ImageGen";
 import NotFound from "./pages/NotFound";
 import { DebugErrorThrower } from "@/components/debug/DebugErrorThrower";
 import { ErrorDebugPopup } from "@/components/debug/ErrorDebugPopup";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/dashboard/patient" element={<PatientDashboard />} />
             <Route path="/dashboard/therapist" element={<TherapistDashboard />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/image-gen" element={<ImageGen />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
