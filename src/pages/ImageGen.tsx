@@ -114,7 +114,21 @@ export default function ImageGen() {
           <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
             <Card className="p-5 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="prompt">Descrição da imagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="prompt">Descrição da imagem</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrompt(EXAMPLE_PROMPT);
+                      setSeed(EXAMPLE_SEED);
+                      setSizeIdx(0);
+                      setModel("flux-realism");
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Usar exemplo (retrato profissional)
+                  </button>
+                </div>
                 <Textarea
                   id="prompt"
                   value={prompt}
