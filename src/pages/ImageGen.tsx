@@ -1,13 +1,29 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Download, Sparkles, ImageIcon } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Loader2,
+  Download,
+  Sparkles,
+  ImageIcon,
+  Upload,
+  Wand2,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const MODELS = ["flux", "flux-realism", "flux-anime", "flux-3d", "turbo"];
 const SIZES = [
@@ -19,9 +35,47 @@ const SIZES = [
 
 const EXAMPLE_PROMPT = `Professional portrait of a confident middle-aged woman, wearing elegant black clothing and glasses, smiling, arms crossed, centered composition, sharp focus, studio lighting, warm tones. Background: modern office environment, softly blurred bokeh, neutral colors (beige, brown, soft light), clean and professional atmosphere. Style: advertising creative, social media marketing post, high contrast, cinematic lighting, depth of field, ultra realistic, 4k. Mood: trustworthy, professional, authoritative, legal/financial advisory theme. No distortions, no extra limbs, no blur on face.`;
 
-const EXAMPLE_SEED = "42";
+const EXAMPLE_EDIT_PROMPT = `Keep the person exactly the same, preserve face, identity and pose. Replace only the background with a modern office, soft blur, warm tones, professional lighting, depth of field.`;
+const EXAMPLE_NEGATIVE = `deformed face, different person, blurry face, distorted body`;
+
+function downloadAsJpg(srcUrl: string) {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      const res = await fetch(srcUrl);
+      const blob = await res.blob();
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas não suportado");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0);
+      canvas.toBlob(
+        (jpgBlob) => {
+          if (!jpgBlob) return reject(new Error("Falha ao converter"));
+          const link = document.createElement("a");
+          const objectUrl = URL.createObjectURL(jpgBlob);
+          link.href = objectUrl;
+          link.download = `imagem-${Date.now()}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(objectUrl);
+          resolve();
+        },
+        "image/jpeg",
+        0.95,
+      );
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
 
 export default function ImageGen() {
+  // -------- Modo "Gerar" (text-to-image, grátis via Pollinations) --------
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("flux");
   const [sizeIdx, setSizeIdx] = useState(0);
@@ -38,59 +92,74 @@ export default function ImageGen() {
     setImageUrl(null);
     try {
       const size = SIZES[sizeIdx];
-      const usedSeed = seed.trim() || Math.floor(Math.random() * 1_000_000).toString();
+      const usedSeed =
+        seed.trim() || Math.floor(Math.random() * 1_000_000).toString();
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        prompt
+        prompt,
       )}?width=${size.w}&height=${size.h}&model=${model}&seed=${usedSeed}&nologo=true`;
 
-      // Pré-carrega para validar e exibir
       await new Promise<void>((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Falha ao carregar imagem"));
+        img.onerror = () => reject(new Error("Falha ao carregar"));
         img.src = url;
       });
       setImageUrl(url);
       toast.success("Imagem gerada!");
-    } catch (e) {
-      toast.error("Não foi possível gerar a imagem. Tente novamente.");
+    } catch {
+      toast.error("Não foi possível gerar a imagem.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = async () => {
-    if (!imageUrl) return;
+  // -------- Modo "Editar" (img2img / Nano Banana via Lovable AI) --------
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [sourceDataUrl, setSourceDataUrl] = useState<string | null>(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [editedUrl, setEditedUrl] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  const handleFile = (file: File) => {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 8MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setSourceDataUrl(reader.result as string);
+    reader.onerror = () => toast.error("Falha ao ler a imagem");
+    reader.readAsDataURL(file);
+  };
+
+  const handleEdit = async () => {
+    if (!sourceDataUrl) {
+      toast.error("Envie uma imagem de referência");
+      return;
+    }
+    if (!editPrompt.trim()) {
+      toast.error("Descreva a edição desejada");
+      return;
+    }
+    setEditing(true);
+    setEditedUrl(null);
     try {
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
-      // Converte para JPG via canvas
-      const bitmap = await createImageBitmap(blob);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas não suportado");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bitmap, 0, 0);
-      canvas.toBlob(
-        (jpgBlob) => {
-          if (!jpgBlob) return;
-          const link = document.createElement("a");
-          const objectUrl = URL.createObjectURL(jpgBlob);
-          link.href = objectUrl;
-          link.download = `imagem-${Date.now()}.jpg`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(objectUrl);
+      const { data, error } = await supabase.functions.invoke("image-edit", {
+        body: {
+          imageDataUrl: sourceDataUrl,
+          prompt: editPrompt,
+          negativePrompt,
         },
-        "image/jpeg",
-        0.95
-      );
-    } catch {
-      toast.error("Falha ao baixar a imagem");
+      });
+      if (error) throw error;
+      if (!data?.imageUrl) throw new Error("Sem imagem na resposta");
+      setEditedUrl(data.imageUrl);
+      toast.success("Imagem editada!");
+    } catch (e: any) {
+      const msg = e?.message || "Falha na edição";
+      toast.error(msg.includes("402") ? "Créditos insuficientes." : msg);
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -101,112 +170,283 @@ export default function ImageGen() {
           <header className="mb-8 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-secondary/40 px-4 py-1.5 text-sm text-secondary-foreground">
               <Sparkles className="h-4 w-4" />
-              100% gratuito · sem cadastro · sem chave de API · 0 créditos
+              Geração grátis (Pollinations) + Edição img2img (Nano Banana)
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
-              Gerador de Imagens com IA
+              Gerador & Editor de Imagens
             </h1>
             <p className="mt-3 text-muted-foreground">
-              Descreva o que você imagina e a IA cria. Powered by Pollinations.ai (Flux) — chamada direta à API pública, sem consumir créditos do projeto.
+              Crie do zero (gratuito) ou edite uma imagem existente preservando o rosto.
             </p>
           </header>
 
-          <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
-            <Card className="p-5 space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="prompt">Descrição da imagem</Label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPrompt(EXAMPLE_PROMPT);
-                      setSeed(EXAMPLE_SEED);
-                      setSizeIdx(0);
-                      setModel("flux-realism");
-                    }}
-                    className="text-xs text-primary hover:underline"
+          <Tabs defaultValue="generate" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="generate">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Gerar (grátis)
+              </TabsTrigger>
+              <TabsTrigger value="edit">
+                <Wand2 className="mr-2 h-4 w-4" />
+                Editar imagem (img2img)
+              </TabsTrigger>
+            </TabsList>
+
+            {/* -------- ABA GERAR -------- */}
+            <TabsContent value="generate" className="mt-6">
+              <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+                <Card className="space-y-4 p-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="prompt">Descrição da imagem</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrompt(EXAMPLE_PROMPT);
+                          setSeed("42");
+                          setSizeIdx(0);
+                          setModel("flux-realism");
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Usar exemplo
+                      </button>
+                    </div>
+                    <Textarea
+                      id="prompt"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="Ex.: pôr do sol sobre montanhas nevadas, cinematográfico"
+                      className="min-h-[140px]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Modelo</Label>
+                      <Select value={model} onValueChange={setModel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MODELS.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Formato</Label>
+                      <Select
+                        value={String(sizeIdx)}
+                        onValueChange={(v) => setSizeIdx(Number(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SIZES.map((s, i) => (
+                            <SelectItem key={s.label} value={String(i)}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="seed">Seed (opcional)</Label>
+                    <Input
+                      id="seed"
+                      value={seed}
+                      onChange={(e) => setSeed(e.target.value)}
+                      placeholder="Vazio = aleatório"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={loading}
+                    className="w-full"
+                    size="lg"
                   >
-                    Usar exemplo (retrato profissional)
-                  </button>
-                </div>
-                <Textarea
-                  id="prompt"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex.: um pôr do sol sobre montanhas nevadas, estilo cinematográfico"
-                  className="min-h-[140px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Modelo</Label>
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MODELS.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Formato</Label>
-                  <Select value={String(sizeIdx)} onValueChange={(v) => setSizeIdx(Number(v))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {SIZES.map((s, i) => (
-                        <SelectItem key={s.label} value={String(i)}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="seed">Seed (opcional)</Label>
-                <Input
-                  id="seed"
-                  value={seed}
-                  onChange={(e) => setSeed(e.target.value)}
-                  placeholder="Deixe vazio para aleatório"
-                />
-              </div>
-
-              <Button onClick={handleGenerate} disabled={loading} className="w-full" size="lg">
-                {loading ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
-                ) : (
-                  <><Sparkles className="mr-2 h-4 w-4" /> Gerar imagem</>
-                )}
-              </Button>
-            </Card>
-
-            <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
-              {loading ? (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <p className="text-sm">Criando sua imagem...</p>
-                </div>
-              ) : imageUrl ? (
-                <div className="flex w-full flex-col gap-4">
-                  <img
-                    src={imageUrl}
-                    alt={prompt}
-                    className="w-full rounded-md object-contain"
-                  />
-                  <Button onClick={handleDownload} variant="secondary" className="w-full">
-                    <Download className="mr-2 h-4 w-4" /> Baixar JPG
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" /> Gerar imagem
+                      </>
+                    )}
                   </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <ImageIcon className="h-10 w-10" />
-                  <p className="text-sm">Sua imagem aparecerá aqui</p>
-                </div>
-              )}
-            </Card>
-          </div>
+                  <p className="text-center text-xs text-muted-foreground">
+                    100% gratuito · 0 créditos consumidos
+                  </p>
+                </Card>
+
+                <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
+                  {loading ? (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <p className="text-sm">Criando sua imagem...</p>
+                    </div>
+                  ) : imageUrl ? (
+                    <div className="flex w-full flex-col gap-4">
+                      <img
+                        src={imageUrl}
+                        alt={prompt}
+                        className="w-full rounded-md object-contain"
+                      />
+                      <Button
+                        onClick={() => downloadAsJpg(imageUrl).catch(() => toast.error("Falha"))}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        <Download className="mr-2 h-4 w-4" /> Baixar JPG
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <ImageIcon className="h-10 w-10" />
+                      <p className="text-sm">Sua imagem aparecerá aqui</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* -------- ABA EDITAR (img2img) -------- */}
+            <TabsContent value="edit" className="mt-6">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <p>
+                  Modo <strong>img2img</strong> usa o modelo Nano Banana (Gemini Flash Image)
+                  via Lovable AI. <strong>Consome créditos</strong> do workspace.
+                  Mantém o rosto/pose original e altera o que você pedir.
+                </p>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+                <Card className="space-y-4 p-5">
+                  <div className="space-y-2">
+                    <Label>Imagem de referência</Label>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFile(f);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {sourceDataUrl ? "Trocar imagem" : "Enviar imagem"}
+                    </Button>
+                    {sourceDataUrl && (
+                      <img
+                        src={sourceDataUrl}
+                        alt="referência"
+                        className="mt-2 max-h-40 w-full rounded-md object-contain"
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="edit-prompt">Instrução de edição</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditPrompt(EXAMPLE_EDIT_PROMPT);
+                          setNegativePrompt(EXAMPLE_NEGATIVE);
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Usar exemplo
+                      </button>
+                    </div>
+                    <Textarea
+                      id="edit-prompt"
+                      value={editPrompt}
+                      onChange={(e) => setEditPrompt(e.target.value)}
+                      placeholder="Ex.: mantenha a pessoa igual, troque só o fundo por um escritório moderno"
+                      className="min-h-[120px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="negative">Negative prompt (opcional)</Label>
+                    <Textarea
+                      id="negative"
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                      placeholder="Ex.: rosto deformado, pessoa diferente, borrado"
+                      className="min-h-[70px]"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleEdit}
+                    disabled={editing || !sourceDataUrl}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {editing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Editando...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="mr-2 h-4 w-4" /> Editar imagem
+                      </>
+                    )}
+                  </Button>
+                </Card>
+
+                <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
+                  {editing ? (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <p className="text-sm">Aplicando edição...</p>
+                    </div>
+                  ) : editedUrl ? (
+                    <div className="flex w-full flex-col gap-4">
+                      <img
+                        src={editedUrl}
+                        alt={editPrompt}
+                        className="w-full rounded-md object-contain"
+                      />
+                      <Button
+                        onClick={() => downloadAsJpg(editedUrl).catch(() => toast.error("Falha"))}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        <Download className="mr-2 h-4 w-4" /> Baixar JPG
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Wand2 className="h-10 w-10" />
+                      <p className="text-sm">A imagem editada aparecerá aqui</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
     </Layout>
