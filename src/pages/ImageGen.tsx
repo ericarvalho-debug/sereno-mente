@@ -164,6 +164,47 @@ export default function ImageGen() {
     }
   };
 
+  // -------- Modo "Combinar 2 imagens" (Nano Banana via Lovable AI — pago) --------
+  const baseFileRef = useRef<HTMLInputElement>(null);
+  const refFileRef = useRef<HTMLInputElement>(null);
+  const [baseImg, setBaseImg] = useState<string | null>(null);
+  const [refImg, setRefImg] = useState<string | null>(null);
+  const [combinePrompt, setCombinePrompt] = useState("");
+  const [combinedUrl, setCombinedUrl] = useState<string | null>(null);
+  const [combining, setCombining] = useState(false);
+
+  const readFileToDataUrl = (file: File, set: (s: string) => void) => {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 8MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => set(reader.result as string);
+    reader.onerror = () => toast.error("Falha ao ler a imagem");
+    reader.readAsDataURL(file);
+  };
+
+  const handleCombine = async () => {
+    if (!baseImg) return toast.error("Envie a foto base (do criativo)");
+    if (!refImg) return toast.error("Envie a foto de referência");
+    if (!combinePrompt.trim()) return toast.error("Descreva como combinar");
+    setCombining(true);
+    setCombinedUrl(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("image-combine", {
+        body: { baseImage: baseImg, referenceImage: refImg, prompt: combinePrompt },
+      });
+      if (error) throw error;
+      if (!data?.imageUrl) throw new Error(data?.error || "Sem imagem na resposta");
+      setCombinedUrl(data.imageUrl);
+      toast.success("Imagens combinadas!");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao combinar");
+    } finally {
+      setCombining(false);
+    }
+  };
+
   return (
     <Layout>
       <section className="container mx-auto px-4 py-10 md:py-16">
@@ -182,14 +223,18 @@ export default function ImageGen() {
           </header>
 
           <Tabs defaultValue="generate" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="generate">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Gerar (grátis)
               </TabsTrigger>
               <TabsTrigger value="edit">
                 <Wand2 className="mr-2 h-4 w-4" />
-                Editar imagem (img2img)
+                Editar (grátis)
+              </TabsTrigger>
+              <TabsTrigger value="combine">
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Combinar 2 imagens
               </TabsTrigger>
             </TabsList>
 
@@ -442,6 +487,143 @@ export default function ImageGen() {
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                       <Wand2 className="h-10 w-10" />
                       <p className="text-sm">A imagem editada aparecerá aqui</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* -------- ABA COMBINAR 2 IMAGENS -------- */}
+            <TabsContent value="combine" className="mt-6">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                <p>
+                  Modo <strong>Combinar 2 imagens</strong> usa o Nano Banana (Gemini Flash Image)
+                  via Lovable AI — único modelo que aceita 2 imagens.{" "}
+                  <strong>Consome créditos do Lovable AI</strong> ($1 grátis/mês, depois pré-pago).
+                </p>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-[1fr_1.2fr]">
+                <Card className="space-y-4 p-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Foto base (criativo)</Label>
+                      <input
+                        ref={baseFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) readFileToDataUrl(f, setBaseImg);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => baseFileRef.current?.click()}
+                        className="w-full"
+                        size="sm"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {baseImg ? "Trocar" : "Enviar"}
+                      </Button>
+                      {baseImg && (
+                        <img
+                          src={baseImg}
+                          alt="base"
+                          className="mt-1 h-28 w-full rounded-md object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Foto de referência</Label>
+                      <input
+                        ref={refFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) readFileToDataUrl(f, setRefImg);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => refFileRef.current?.click()}
+                        className="w-full"
+                        size="sm"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {refImg ? "Trocar" : "Enviar"}
+                      </Button>
+                      {refImg && (
+                        <img
+                          src={refImg}
+                          alt="ref"
+                          className="mt-1 h-28 w-full rounded-md object-cover"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="combine-prompt">Como combinar</Label>
+                    <Textarea
+                      id="combine-prompt"
+                      value={combinePrompt}
+                      onChange={(e) => setCombinePrompt(e.target.value)}
+                      placeholder="Ex.: mantenha o rosto/pessoa da Imagem 1 e use o estilo/fundo da Imagem 2"
+                      className="min-h-[120px]"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleCombine}
+                    disabled={combining || !baseImg || !refImg}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {combining ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Combinando...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="mr-2 h-4 w-4" /> Combinar imagens
+                      </>
+                    )}
+                  </Button>
+                </Card>
+
+                <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
+                  {combining ? (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <p className="text-sm">Combinando imagens...</p>
+                    </div>
+                  ) : combinedUrl ? (
+                    <div className="flex w-full flex-col gap-4">
+                      <img
+                        src={combinedUrl}
+                        alt={combinePrompt}
+                        className="w-full rounded-md object-contain"
+                      />
+                      <Button
+                        onClick={() => downloadAsJpg(combinedUrl).catch(() => toast.error("Falha"))}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        <Download className="mr-2 h-4 w-4" /> Baixar JPG
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <ImageIcon className="h-10 w-10" />
+                      <p className="text-sm">O resultado aparecerá aqui</p>
                     </div>
                   )}
                 </Card>
