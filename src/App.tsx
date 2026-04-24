@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/dashboard/therapist" element={<TherapistDashboard />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/image-gen" element={<ImageGen />} />
+            <Route path="/schedule" element={<Schedule />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
