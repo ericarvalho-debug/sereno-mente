@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,9 +22,16 @@ import {
   Upload,
   Wand2,
   AlertTriangle,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  SOCIAL_FORMATS,
+  cropToAllFormats,
+  downloadDataUrl,
+  type SocialFormat,
+} from "@/lib/imageCrop";
 
 const MODELS = ["flux", "flux-realism", "flux-anime", "flux-3d", "turbo"];
 const SIZES = [
