@@ -622,29 +622,63 @@ export default function ImageGen() {
                   </Button>
                 </Card>
 
-                <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
+                <Card className="flex min-h-[420px] flex-col p-4">
                   {combining ? (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                       <Loader2 className="h-8 w-8 animate-spin" />
-                      <p className="text-sm">Combinando imagens...</p>
+                      <p className="text-sm">Gerando + recortando 4 formatos...</p>
                     </div>
-                  ) : combinedUrl ? (
-                    <div className="flex w-full flex-col gap-4">
-                      <img
-                        src={combinedUrl}
-                        alt={combinePrompt}
-                        className="w-full rounded-md object-contain"
-                      />
-                      <Button
-                        onClick={() => downloadAsJpg(combinedUrl).catch(() => toast.error("Falha"))}
-                        variant="secondary"
-                        className="w-full"
+                  ) : variants && combinedUrl ? (
+                    <div className="flex w-full flex-col gap-3">
+                      <Tabs
+                        value={activeVariant}
+                        onValueChange={(v) => setActiveVariant(v as SocialFormat["key"])}
                       >
-                        <Download className="mr-2 h-4 w-4" /> Baixar JPG
-                      </Button>
+                        <TabsList className="grid w-full grid-cols-4">
+                          {SOCIAL_FORMATS.map((f) => (
+                            <TabsTrigger key={f.key} value={f.key} className="text-xs">
+                              {f.key === "reels" && "Reels"}
+                              {f.key === "feed" && "Feed"}
+                              {f.key === "story" && "Story"}
+                              {f.key === "landscape" && "FB"}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {SOCIAL_FORMATS.map((f) => (
+                          <TabsContent key={f.key} value={f.key} className="mt-3">
+                            <div className="flex flex-col items-center gap-2">
+                              <img
+                                src={variants[f.key]}
+                                alt={f.label}
+                                className="max-h-[340px] rounded-md border border-border object-contain"
+                              />
+                              <p className="text-xs text-muted-foreground">{f.label}</p>
+                            </div>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            downloadDataUrl(
+                              variants[activeVariant],
+                              `${activeVariant}-${Date.now()}.jpg`,
+                            )
+                          }
+                        >
+                          <Download className="mr-2 h-4 w-4" /> Baixar este formato
+                        </Button>
+                        <Button onClick={() => scheduleVariant(activeVariant)}>
+                          <CalendarClock className="mr-2 h-4 w-4" /> Agendar postagem
+                        </Button>
+                      </div>
+                      <p className="text-center text-xs text-muted-foreground">
+                        💡 1 geração = 4 formatos. Crop client-side, sem créditos extras.
+                      </p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                       <ImageIcon className="h-10 w-10" />
                       <p className="text-sm">O resultado aparecerá aqui</p>
                     </div>
