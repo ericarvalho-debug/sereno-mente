@@ -112,6 +112,48 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_posts: {
+        Row: {
+          caption: string
+          created_at: string
+          error_message: string | null
+          external_post_id: string | null
+          id: string
+          image_url: string
+          platforms: string[]
+          scheduled_at: string
+          status: Database["public"]["Enums"]["post_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          error_message?: string | null
+          external_post_id?: string | null
+          id?: string
+          image_url: string
+          platforms?: string[]
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["post_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          error_message?: string | null
+          external_post_id?: string | null
+          id?: string
+          image_url?: string
+          platforms?: string[]
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["post_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           created_at: string
@@ -253,6 +295,7 @@ export type Database = {
     }
     Enums: {
       app_role: "patient" | "therapist"
+      post_status: "pending" | "posted" | "failed" | "cancelled"
       session_status: "scheduled" | "completed" | "cancelled" | "in_progress"
     }
     CompositeTypes: {
@@ -382,6 +425,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["patient", "therapist"],
+      post_status: ["pending", "posted", "failed", "cancelled"],
       session_status: ["scheduled", "completed", "cancelled", "in_progress"],
     },
   },

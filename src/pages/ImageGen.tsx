@@ -21,9 +21,16 @@ import {
   Upload,
   Wand2,
   AlertTriangle,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  SOCIAL_FORMATS,
+  cropToAllFormats,
+  downloadDataUrl,
+  type SocialFormat,
+} from "@/lib/imageCrop";
 
 const MODELS = ["flux", "flux-realism", "flux-anime", "flux-3d", "turbo"];
 const SIZES = [
@@ -172,6 +179,8 @@ export default function ImageGen() {
   const [combinePrompt, setCombinePrompt] = useState("");
   const [combinedUrl, setCombinedUrl] = useState<string | null>(null);
   const [combining, setCombining] = useState(false);
+  const [variants, setVariants] = useState<Record<SocialFormat["key"], string> | null>(null);
+  const [activeVariant, setActiveVariant] = useState<SocialFormat["key"]>("reels");
 
   const readFileToDataUrl = (file: File, set: (s: string) => void) => {
     if (file.size > 8 * 1024 * 1024) {
@@ -190,6 +199,7 @@ export default function ImageGen() {
     if (!combinePrompt.trim()) return toast.error("Descreva como combinar");
     setCombining(true);
     setCombinedUrl(null);
+    setVariants(null);
     try {
       const { data, error } = await supabase.functions.invoke("image-combine", {
         body: { baseImage: baseImg, referenceImage: refImg, prompt: combinePrompt },
@@ -197,12 +207,24 @@ export default function ImageGen() {
       if (error) throw error;
       if (!data?.imageUrl) throw new Error(data?.error || "Sem imagem na resposta");
       setCombinedUrl(data.imageUrl);
-      toast.success("Imagens combinadas!");
+      // Gera os 4 formatos a partir da MESMA imagem (sem créditos extras)
+      const v = await cropToAllFormats(data.imageUrl);
+      setVariants(v);
+      toast.success("Imagem gerada nos 4 formatos!");
     } catch (e: any) {
       toast.error(e?.message || "Falha ao combinar");
     } finally {
       setCombining(false);
     }
+  };
+
+  const scheduleVariant = async (formatKey: SocialFormat["key"]) => {
+    if (!variants) return;
+    const dataUrl = variants[formatKey];
+    // Stash no sessionStorage para a página de agendamento consumir
+    sessionStorage.setItem("pending_post_image", dataUrl);
+    sessionStorage.setItem("pending_post_caption", combinePrompt);
+    window.location.href = "/schedule";
   };
 
   return (
@@ -599,29 +621,63 @@ export default function ImageGen() {
                   </Button>
                 </Card>
 
-                <Card className="flex min-h-[420px] items-center justify-center overflow-hidden p-4">
+                <Card className="flex min-h-[420px] flex-col p-4">
                   {combining ? (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                       <Loader2 className="h-8 w-8 animate-spin" />
-                      <p className="text-sm">Combinando imagens...</p>
+                      <p className="text-sm">Gerando + recortando 4 formatos...</p>
                     </div>
-                  ) : combinedUrl ? (
-                    <div className="flex w-full flex-col gap-4">
-                      <img
-                        src={combinedUrl}
-                        alt={combinePrompt}
-                        className="w-full rounded-md object-contain"
-                      />
-                      <Button
-                        onClick={() => downloadAsJpg(combinedUrl).catch(() => toast.error("Falha"))}
-                        variant="secondary"
-                        className="w-full"
+                  ) : variants && combinedUrl ? (
+                    <div className="flex w-full flex-col gap-3">
+                      <Tabs
+                        value={activeVariant}
+                        onValueChange={(v) => setActiveVariant(v as SocialFormat["key"])}
                       >
-                        <Download className="mr-2 h-4 w-4" /> Baixar JPG
-                      </Button>
+                        <TabsList className="grid w-full grid-cols-4">
+                          {SOCIAL_FORMATS.map((f) => (
+                            <TabsTrigger key={f.key} value={f.key} className="text-xs">
+                              {f.key === "reels" && "Reels"}
+                              {f.key === "feed" && "Feed"}
+                              {f.key === "story" && "Story"}
+                              {f.key === "landscape" && "FB"}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {SOCIAL_FORMATS.map((f) => (
+                          <TabsContent key={f.key} value={f.key} className="mt-3">
+                            <div className="flex flex-col items-center gap-2">
+                              <img
+                                src={variants[f.key]}
+                                alt={f.label}
+                                className="max-h-[340px] rounded-md border border-border object-contain"
+                              />
+                              <p className="text-xs text-muted-foreground">{f.label}</p>
+                            </div>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            downloadDataUrl(
+                              variants[activeVariant],
+                              `${activeVariant}-${Date.now()}.jpg`,
+                            )
+                          }
+                        >
+                          <Download className="mr-2 h-4 w-4" /> Baixar este formato
+                        </Button>
+                        <Button onClick={() => scheduleVariant(activeVariant)}>
+                          <CalendarClock className="mr-2 h-4 w-4" /> Agendar postagem
+                        </Button>
+                      </div>
+                      <p className="text-center text-xs text-muted-foreground">
+                        💡 1 geração = 4 formatos. Crop client-side, sem créditos extras.
+                      </p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                       <ImageIcon className="h-10 w-10" />
                       <p className="text-sm">O resultado aparecerá aqui</p>
                     </div>
