@@ -18,17 +18,22 @@ import { ErrorDebugPopup } from "@/components/debug/ErrorDebugPopup";
 
 const queryClient = new QueryClient();
 
+const isLocalDebugMode = (() => {
+  if (typeof window === "undefined") return import.meta.env.DEV;
+
+  const params = new URLSearchParams(window.location.search);
+  return window.location.hostname === "localhost" || params.get("debug-tools") === "1";
+})();
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* DebugErrorThrower deve ficar FORA de qualquer ErrorBoundary/Suspense
-          para que o erro intencional escape ao overlay global da Lovable. */}
-      <DebugErrorThrower />
+      {isLocalDebugMode ? <DebugErrorThrower /> : null}
       <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ErrorDebugPopup />
+          {isLocalDebugMode ? <ErrorDebugPopup /> : null}
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />

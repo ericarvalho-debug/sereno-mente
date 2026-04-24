@@ -29,6 +29,7 @@ import {
   SOCIAL_FORMATS,
   cropToAllFormats,
   downloadDataUrl,
+  fileToOptimizedDataUrl,
   type SocialFormat,
 } from "@/lib/imageCrop";
 
@@ -182,15 +183,21 @@ export default function ImageGen() {
   const [variants, setVariants] = useState<Record<SocialFormat["key"], string> | null>(null);
   const [activeVariant, setActiveVariant] = useState<SocialFormat["key"]>("reels");
 
-  const readFileToDataUrl = (file: File, set: (s: string) => void) => {
+  const readFileToDataUrl = async (file: File, set: (s: string) => void) => {
     if (file.size > 8 * 1024 * 1024) {
       toast.error("Imagem muito grande (máx. 8MB)");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => set(reader.result as string);
-    reader.onerror = () => toast.error("Falha ao ler a imagem");
-    reader.readAsDataURL(file);
+
+    try {
+      const optimizedDataUrl = await fileToOptimizedDataUrl(file, {
+        maxDimension: 1536,
+        quality: 0.86,
+      });
+      set(optimizedDataUrl);
+    } catch {
+      toast.error("Falha ao preparar a imagem");
+    }
   };
 
   const handleCombine = async () => {
