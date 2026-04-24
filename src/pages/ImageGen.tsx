@@ -180,6 +180,8 @@ export default function ImageGen() {
   const [combinePrompt, setCombinePrompt] = useState("");
   const [combinedUrl, setCombinedUrl] = useState<string | null>(null);
   const [combining, setCombining] = useState(false);
+  const [variants, setVariants] = useState<Record<SocialFormat["key"], string> | null>(null);
+  const [activeVariant, setActiveVariant] = useState<SocialFormat["key"]>("reels");
 
   const readFileToDataUrl = (file: File, set: (s: string) => void) => {
     if (file.size > 8 * 1024 * 1024) {
@@ -198,6 +200,7 @@ export default function ImageGen() {
     if (!combinePrompt.trim()) return toast.error("Descreva como combinar");
     setCombining(true);
     setCombinedUrl(null);
+    setVariants(null);
     try {
       const { data, error } = await supabase.functions.invoke("image-combine", {
         body: { baseImage: baseImg, referenceImage: refImg, prompt: combinePrompt },
@@ -205,12 +208,24 @@ export default function ImageGen() {
       if (error) throw error;
       if (!data?.imageUrl) throw new Error(data?.error || "Sem imagem na resposta");
       setCombinedUrl(data.imageUrl);
-      toast.success("Imagens combinadas!");
+      // Gera os 4 formatos a partir da MESMA imagem (sem créditos extras)
+      const v = await cropToAllFormats(data.imageUrl);
+      setVariants(v);
+      toast.success("Imagem gerada nos 4 formatos!");
     } catch (e: any) {
       toast.error(e?.message || "Falha ao combinar");
     } finally {
       setCombining(false);
     }
+  };
+
+  const scheduleVariant = async (formatKey: SocialFormat["key"]) => {
+    if (!variants) return;
+    const dataUrl = variants[formatKey];
+    // Stash no sessionStorage para a página de agendamento consumir
+    sessionStorage.setItem("pending_post_image", dataUrl);
+    sessionStorage.setItem("pending_post_caption", combinePrompt);
+    window.location.href = "/schedule";
   };
 
   return (
