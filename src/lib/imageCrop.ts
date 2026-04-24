@@ -26,6 +26,39 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+export async function fileToOptimizedDataUrl(
+  file: File,
+  options?: {
+    maxDimension?: number;
+    quality?: number;
+    mimeType?: string;
+  },
+): Promise<string> {
+  const maxDimension = options?.maxDimension ?? 1536;
+  const quality = options?.quality ?? 0.86;
+  const mimeType = options?.mimeType ?? "image/jpeg";
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const img = await loadImage(objectUrl);
+    const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas indisponível");
+
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL(mimeType, quality);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 /** Recorta a imagem para o formato alvo preservando o centro (cover). */
 export async function cropToFormat(
   src: string,
