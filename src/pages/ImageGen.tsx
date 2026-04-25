@@ -171,7 +171,7 @@ export default function ImageGen() {
     }
   };
 
-  // -------- Modo "Combinar 2 imagens" (Nano Banana via Lovable AI — pago) --------
+  // -------- Modo "Combinar 2 imagens" (Hugging Face gratuito — 0 créditos Lovable AI) --------
   const baseFileRef = useRef<HTMLInputElement>(null);
   const refFileRef = useRef<HTMLInputElement>(null);
   const [baseImg, setBaseImg] = useState<string | null>(null);
