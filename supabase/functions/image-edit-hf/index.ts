@@ -6,7 +6,7 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const HF_MODEL = "stabilityai/stable-diffusion-xl-refiner-1.0";
@@ -20,13 +20,17 @@ function dataUrlToBytes(dataUrl: string): Uint8Array {
   return bytes;
 }
 
-function bytesToDataUrl(bytes: Uint8Array, mime = "image/png"): string {
+function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  return `data:${mime};base64,${btoa(binary)}`;
+  return btoa(binary);
+}
+
+function bytesToDataUrl(bytes: Uint8Array, mime = "image/png"): string {
+  return `data:${mime};base64,${bytesToBase64(bytes)}`;
 }
 
 Deno.serve(async (req) => {
@@ -59,7 +63,7 @@ Deno.serve(async (req) => {
     }
 
     const inputBytes = dataUrlToBytes(imageDataUrl);
-    const inputBase64 = btoa(String.fromCharCode(...inputBytes));
+    const inputBase64 = bytesToBase64(inputBytes);
 
     const body = {
       inputs: prompt,
