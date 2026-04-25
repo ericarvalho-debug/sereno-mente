@@ -13,22 +13,16 @@ import Messages from "./pages/Messages";
 import ImageGen from "./pages/ImageGen";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
-import { DebugErrorThrower } from "@/components/debug/DebugErrorThrower";
-import { ErrorDebugPopup } from "@/components/debug/ErrorDebugPopup";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* DebugErrorThrower deve ficar FORA de qualquer ErrorBoundary/Suspense
-          para que o erro intencional escape ao overlay global da Lovable. */}
-      <DebugErrorThrower />
       <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ErrorDebugPopup />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
