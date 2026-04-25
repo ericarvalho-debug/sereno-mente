@@ -256,7 +256,7 @@ export default function ImageGen() {
               </TabsTrigger>
               <TabsTrigger value="combine">
                 <ImageIcon className="mr-2 h-4 w-4" />
-                Combinar 2 imagens
+                Combinar (grátis)
               </TabsTrigger>
             </TabsList>
 
