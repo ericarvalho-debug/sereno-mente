@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
     // 3) img2img com SDXL Refiner usando a imagem base
     const baseBytes = dataUrlToBytes(baseImage);
-    const baseB64 = btoa(String.fromCharCode(...baseBytes));
+    const baseB64 = bytesToBase64(baseBytes);
 
     const body = {
       inputs: enriched,
