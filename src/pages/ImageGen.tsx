@@ -520,9 +520,9 @@ export default function ImageGen() {
               <div className="mb-4 flex items-start gap-2 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm text-muted-foreground">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>
-                  Modo <strong>Combinar 2 fotos</strong> usa Lovable AI para fundir duas imagens de verdade.
-                  A foto 1 é a base/sujeito e a foto 2 é a referência de estilo/elementos.
-                  <strong> Sim, essa opção consome créditos do Lovable AI por geração.</strong>
+                  Modo <strong>Combinar 2 fotos</strong> usa Gemini Image (multi-imagem nativo)
+                  via Lovable AI. A foto 1 é a base/sujeito e a foto 2 é a referência de estilo/elementos
+                  aplicados sobre a base. Consome créditos do Lovable AI por geração.
                 </p>
               </div>
 
