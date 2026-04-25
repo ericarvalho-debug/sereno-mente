@@ -516,13 +516,14 @@ export default function ImageGen() {
             </TabsContent>
 
             {/* -------- ABA COMBINAR 2 IMAGENS -------- */}
-            <TabsContent value="combine" className="mt-6">
-              <div className="mb-4 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-muted-foreground">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+             <TabsContent value="combine" className="mt-6">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-primary/40 bg-primary/5 p-3 text-sm text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>
-                  Modo <strong>Combinar 2 imagens</strong> usa o Nano Banana (Gemini Flash Image)
-                  via Lovable AI — único modelo que aceita 2 imagens.{" "}
-                  <strong>Consome créditos do Lovable AI</strong> ($1 grátis/mês, depois pré-pago).
+                  Modo <strong>Combinar 2 imagens</strong> usa Hugging Face grátis:
+                  BLIP descreve a imagem 2 (referência) e SDXL Refiner aplica esse estilo
+                  na imagem 1 (base). <strong>0 créditos do Lovable AI.</strong>{" "}
+                  Pode haver cold start (~30s) e rate limit do HF se usado em excesso.
                 </p>
               </div>
 
